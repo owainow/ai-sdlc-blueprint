@@ -46,7 +46,7 @@ $ErrorActionPreference = 'Stop'
 $targetDir = Join-Path $OutputPath $ProjectName
 $blueprintDir = $PSScriptRoot
 
-# ── Guard ────────────────────────────────────────────
+# -- Guard --
 if (Test-Path $targetDir) {
     Write-Error "Directory '$targetDir' already exists. Aborting."
     return
@@ -55,9 +55,9 @@ if (Test-Path $targetDir) {
 Write-Host "`n  Stamping new project: $ProjectName" -ForegroundColor Cyan
 Write-Host "  Target: $targetDir`n"
 
-# ── Copy blueprint (exclude .git, stamp script, node_modules) ──
+# -- Copy blueprint (exclude .git, stamp script, setup script, etc.) --
 $excludeDirs = @('.git', 'node_modules', '.venv', '__pycache__')
-$excludeFiles = @('stamp.ps1')
+$excludeFiles = @('stamp.ps1', 'setup-azure.ps1')
 
 function Copy-Blueprint {
     param([string]$Source, [string]$Dest)
@@ -82,7 +82,7 @@ function Copy-Blueprint {
 New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
 Copy-Blueprint -Source $blueprintDir -Dest $targetDir
 
-# ── Token replacement ────────────────────────────────
+# -- Token replacement --
 $replacements = @{
     '{{PROJECT_NAME}}'        = $ProjectName
     '{{PROJECT_DESCRIPTION}}' = $Description
@@ -110,7 +110,7 @@ Get-ChildItem -Path $targetDir -Recurse -File | Where-Object {
     }
 }
 
-# ── Git init ─────────────────────────────────────────
+# -- Git init --
 Push-Location $targetDir
 try {
     git init --quiet
@@ -121,7 +121,7 @@ try {
     Pop-Location
 }
 
-# ── Spec Kit init (optional) ─────────────────────────
+# -- Spec Kit init (optional) --
 if (-not $SkipSpecKitInit) {
     Write-Host "`n  Running spec-kit init..." -ForegroundColor Yellow
     try {
@@ -129,20 +129,20 @@ if (-not $SkipSpecKitInit) {
         uvx --from "git+https://github.com/github/spec-kit.git" specify init $ProjectName 2>$null
         Write-Host "  Spec Kit initialised." -ForegroundColor Green
     } catch {
-        Write-Host "  Spec Kit init skipped (not installed or failed). Run manually:" -ForegroundColor DarkYellow
-        Write-Host "    uvx --from 'git+https://github.com/github/spec-kit.git' specify init $ProjectName" -ForegroundColor DarkGray
+        Write-Host "  Spec Kit init skipped (not installed or failed)." -ForegroundColor DarkYellow
     } finally {
         Pop-Location
     }
 }
 
-# ── Summary ──────────────────────────────────────────
-Write-Host "`n  ✓ Project '$ProjectName' stamped successfully!" -ForegroundColor Green
+# -- Summary --
+Write-Host ""
+Write-Host "  Done! Project stamped: $ProjectName" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor White
-Write-Host "    1. cd $targetDir" -ForegroundColor DarkGray
-Write-Host "    2. Update .specify/constitution.md with project-specific details" -ForegroundColor DarkGray
-Write-Host "    3. Push to GitHub: gh repo create $GitHubOrg/$ProjectName --public --push --source ." -ForegroundColor DarkGray
-Write-Host "    4. Wire up Azure:  .\setup-azure.ps1 -ProjectName ""$ProjectName"" -GitHubRepo ""$GitHubOrg/$ProjectName""" -ForegroundColor DarkGray
-Write-Host "    5. Start specifying: gh copilot ""/specify <describe what you want to build>""" -ForegroundColor DarkGray
+Write-Host "    1. cd $targetDir"
+Write-Host "    2. Edit .specify/constitution.md with project-specific details"
+Write-Host "    3. gh repo create $GitHubOrg/$ProjectName --public --push --source ."
+Write-Host "    4. .\setup-azure.ps1 -ProjectName $ProjectName -GitHubRepo $GitHubOrg/$ProjectName"
+Write-Host "    5. Start specifying with Copilot CLI"
 Write-Host ""
