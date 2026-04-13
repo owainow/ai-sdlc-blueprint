@@ -32,7 +32,7 @@ Everything left of the arrow is you in a terminal. Everything right happens auto
 
 ```bash
 # Required
-gh auth login                         # GitHub CLI — authenticated
+gh auth login                         # GitHub CLI - authenticated
 pip install speckit-to-issue          # or: pip install -e path/to/speckit-to-issue
 
 # Spec Kit
@@ -40,10 +40,35 @@ uvx --from git+https://github.com/github/spec-kit.git specify --help
 
 # Azure (for deployment)
 az login
-azd auth login
 ```
 
-### 1. Stamp a project
+### Option A: One-command pipeline (recommended)
+
+```powershell
+# Everything in one shot: stamp + GitHub repo + Azure
+.\new-project.ps1 -ProjectName "my-app" `
+                  -Description "My application" `
+                  -GitHubOrg "myorg"
+```
+
+This runs the full pipeline: stamp project, create GitHub repo, provision Azure (ACR, RGs, OIDC, secrets).
+
+Add `-SkipAzure` if you just want the repo without Azure infrastructure.
+
+Then create features:
+
+```powershell
+cd ..\my-app
+.\new-feature.ps1 -Name "001-dashboard" -Prompt "Build a real-time dashboard with live data"
+```
+
+This runs: specify, plan, tasks, create issue, assign coding agent.
+
+Add `-Auto` to skip review pauses, or `-SkipIssue` to generate the spec without creating an issue.
+
+### Option B: Step by step
+
+#### 1. Stamp a project
 
 ```powershell
 .\stamp.ps1 -ProjectName "my-app" -Description "My application" -GitHubOrg "myorg"
@@ -52,16 +77,16 @@ cd my-app
 
 This copies the blueprint, replaces tokens, inits git, and runs `specify init`.
 
-### 2. Create the GitHub repo and wire up Azure
+#### 2. Create the GitHub repo and wire up Azure
 
 ```powershell
 gh repo create myorg/my-app --public --push --source .
 .\setup-azure.ps1 -ProjectName "my-app" -GitHubRepo "myorg/my-app"
 ```
 
-This creates resource groups (dev/staging/prod), an Azure Container Registry, an Entra ID app with OIDC federation for GitHub Actions, role assignments, and sets all GitHub secrets/variables. One command — CI/CD works immediately.
+This creates resource groups (dev/staging/prod), an Azure Container Registry, an Entra ID app with OIDC federation for GitHub Actions, role assignments, and sets all GitHub secrets/variables. One command -- CI/CD works immediately.
 
-### 3. Create a spec
+#### 3. Create a spec
 
 Use Copilot CLI or any coding agent to generate the spec:
 
@@ -74,7 +99,7 @@ gh copilot "/specify As a user I want to view real-time weather data for my city
 
 This generates `specs/001-feature/requirements.md` with a full breakdown.
 
-### 4. Plan & generate tasks
+#### 4. Plan & generate tasks
 
 ```bash
 gh copilot "/plan"
@@ -83,7 +108,7 @@ gh copilot "/tasks"
 
 You now have `plan.md` and `tasks.md` — a structured, testable breakdown respecting the constitution.
 
-### 5. Create issues from spec
+#### 5. Create issues from spec
 
 The speckit-to-issue MCP server is pre-configured (`.github/copilot/mcp.json`), so Copilot can create issues directly:
 
@@ -98,11 +123,11 @@ Or use the CLI directly:
 speckit-to-issue create specs/001-feature/tasks.md --assign-copilot
 ```
 
-### 6. Let the coding agent build
+#### 6. Let the coding agent build
 
 The GitHub coding agent picks up assigned issues, creates a branch, implements the task, runs tests, and opens a PR. Monitor progress in the repo's **Actions** and **Pull requests** tabs.
 
-### 7. Review & merge
+#### 7. Review & merge
 
 PRs get AI code quality scanning + your review. Leave `@copilot` comments to request changes. Merge when ready — CI/CD deploys to Azure automatically.
 
@@ -126,8 +151,10 @@ ai-sdlc-blueprint/
 │   └── main.bicepparam          # Environment parameters
 ├── specs/                       # Where Spec Kit generates specs, plans, and tasks
 ├── azure.yaml                   # Azure Developer CLI (azd) configuration
-├── stamp.ps1                    # Project stamping script
-├── setup-azure.ps1              # One-command Azure + GitHub wiring
+├── new-project.ps1              # One-command project pipeline (stamp + repo + Azure)
+├── new-feature.ps1              # One-command feature pipeline (specify + plan + tasks + issue)
+├── stamp.ps1                    # Project stamping (called by new-project.ps1)
+├── setup-azure.ps1              # Azure provisioning (called by new-project.ps1)
 └── README.md
 ```
 
