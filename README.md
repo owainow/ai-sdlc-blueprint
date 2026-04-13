@@ -83,13 +83,20 @@ gh copilot "/tasks"
 
 You now have `plan.md` and `tasks.md` — a structured, testable breakdown respecting the constitution.
 
-### 5. Push tasks to GitHub as issues
+### 5. Create issues from spec
+
+The speckit-to-issue MCP server is pre-configured (`.github/copilot/mcp.json`), so Copilot can create issues directly:
+
+```bash
+# Copilot CLI will use the MCP tools automatically
+gh copilot "Create a feature issue from the spec in specs/001-feature"
+```
+
+Or use the CLI directly:
 
 ```bash
 speckit-to-issue create specs/001-feature/tasks.md --assign-copilot
 ```
-
-Each task becomes a GitHub issue. `--assign-copilot` assigns the coding agent automatically.
 
 ### 6. Let the coding agent build
 
@@ -106,6 +113,8 @@ ai-sdlc-blueprint/
 ├── .specify/
 │   └── constitution.md          # Project standards, tech stack, architecture rules
 ├── .github/
+│   ├── copilot/
+│   │   └── mcp.json             # MCP server config (speckit-to-issue)
 │   ├── copilot-instructions.md  # Instructions for Copilot CLI + GitHub coding agent
 │   ├── ISSUE_TEMPLATE/
 │   │   └── spec-task.md         # Issue template for spec-generated tasks
@@ -179,9 +188,9 @@ This blueprint orchestrates two external tools. Both are actively evolving.
 | Tool | Repo | Install |
 |---|---|---|
 | [Spec Kit](https://github.com/github/spec-kit) | GitHub (open source) | `uvx --from git+https://github.com/github/spec-kit.git specify` |
-| [speckit-to-issue](https://github.com/owainow/speckit-to-issue) | owainow (open source) | `pip install -e path/to/speckit-to-issue` |
+| [speckit-to-issue](https://github.com/owainow/speckit-to-issue) | owainow (open source) | `pip install speckit-to-issue` |
 
-The blueprint is loosely coupled to both — it just needs them on your `PATH`. As these tools evolve (e.g. speckit-to-issue gaining an MCP server), the blueprint benefits without changes.
+The blueprint is loosely coupled to both — it just needs them on your `PATH`. The speckit-to-issue MCP server is pre-registered in `.github/copilot/mcp.json` so Copilot (CLI or IDE) can call its tools directly: `create_feature_issue`, `preview_feature_issue`, and `list_spec_folders`.
 
 ## Roadmap
 

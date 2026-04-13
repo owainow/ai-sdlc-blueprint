@@ -15,10 +15,22 @@ Idea → Spec Kit (specify → plan → tasks) → speckit-to-issue → GitHub I
 ### For the developer (Copilot CLI / local)
 
 1. **Specify:** Describe what you want to build. Use Spec Kit to generate requirements, a plan, and tasks.
-2. **Create issues:** Run `speckit-to-issue create specs/NNN-feature/tasks.md --assign-copilot` to push tasks to GitHub.
+2. **Create issues:** Use the `create_feature_issue` MCP tool (speckit-to-issue) to create a comprehensive GitHub issue from a spec folder. Alternatively, run `speckit-to-issue create specs/NNN-feature/tasks.md --assign-copilot` from the CLI.
 3. **Let the coding agent work:** The GitHub coding agent picks up assigned issues, creates branches, and opens PRs.
 4. **Review:** PRs get AI quality review + human review. Leave comments for the coding agent to iterate.
 5. **Merge → Deploy:** CI/CD handles the rest. GitHub Actions builds, pushes to ACR, deploys to Azure Container Apps.
+
+## MCP Tools Available
+
+The `speckit-to-issue` MCP server is registered in `.github/copilot/mcp.json`. It provides:
+
+| Tool | Purpose |
+|---|---|
+| `create_feature_issue` | Create a comprehensive GitHub issue from a spec folder (reads all spec files, assigns coding agent) |
+| `preview_feature_issue` | Preview the issue content without creating it (dry run) |
+| `list_spec_folders` | Discover spec folders in the workspace by finding `tasks.md` files |
+
+**Preferred workflow:** Use `list_spec_folders` to find specs, `preview_feature_issue` to review, then `create_feature_issue` to push to GitHub.
 
 ### For the coding agent (GitHub.com)
 

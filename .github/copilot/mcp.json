@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "speckit-to-issue": {
+      "type": "stdio",
+      "command": "speckit-to-issue-mcp",
+      "args": []
+    }
+  }
+}
