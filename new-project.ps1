@@ -117,7 +117,8 @@ Write-Host "  [2/$(if ($SkipAzure) { '3' } else { '4' })] Creating GitHub repo..
 
 Push-Location $projectDir
 try {
-    gh repo create $githubRepo --$Visibility --push --source . 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+    $output = gh repo create $githubRepo --$Visibility --push --source . 2>&1
+    $output | Where-Object { $_ -notmatch '^(To |remote:|\s*\*)' } | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
 } finally {
     Pop-Location
 }
