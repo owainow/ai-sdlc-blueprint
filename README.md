@@ -52,7 +52,16 @@ cd my-app
 
 This copies the blueprint, replaces tokens, inits git, and runs `specify init`.
 
-### 2. Create a spec
+### 2. Create the GitHub repo and wire up Azure
+
+```powershell
+gh repo create myorg/my-app --public --push --source .
+.\setup-azure.ps1 -ProjectName "my-app" -GitHubRepo "myorg/my-app"
+```
+
+This creates resource groups (dev/staging/prod), an Azure Container Registry, an Entra ID app with OIDC federation for GitHub Actions, role assignments, and sets all GitHub secrets/variables. One command — CI/CD works immediately.
+
+### 3. Create a spec
 
 Use Copilot CLI or any coding agent to generate the spec:
 
@@ -65,7 +74,7 @@ gh copilot "/specify As a user I want to view real-time weather data for my city
 
 This generates `specs/001-feature/requirements.md` with a full breakdown.
 
-### 3. Plan & generate tasks
+### 4. Plan & generate tasks
 
 ```bash
 gh copilot "/plan"
@@ -74,7 +83,7 @@ gh copilot "/tasks"
 
 You now have `plan.md` and `tasks.md` — a structured, testable breakdown respecting the constitution.
 
-### 4. Push tasks to GitHub as issues
+### 5. Push tasks to GitHub as issues
 
 ```bash
 speckit-to-issue create specs/001-feature/tasks.md --assign-copilot
@@ -82,11 +91,11 @@ speckit-to-issue create specs/001-feature/tasks.md --assign-copilot
 
 Each task becomes a GitHub issue. `--assign-copilot` assigns the coding agent automatically.
 
-### 5. Let the coding agent build
+### 6. Let the coding agent build
 
 The GitHub coding agent picks up assigned issues, creates a branch, implements the task, runs tests, and opens a PR. Monitor progress in the repo's **Actions** and **Pull requests** tabs.
 
-### 6. Review & merge
+### 7. Review & merge
 
 PRs get AI code quality scanning + your review. Leave `@copilot` comments to request changes. Merge when ready — CI/CD deploys to Azure automatically.
 
@@ -109,6 +118,7 @@ ai-sdlc-blueprint/
 ├── specs/                       # Where Spec Kit generates specs, plans, and tasks
 ├── azure.yaml                   # Azure Developer CLI (azd) configuration
 ├── stamp.ps1                    # Project stamping script
+├── setup-azure.ps1              # One-command Azure + GitHub wiring
 └── README.md
 ```
 
@@ -128,36 +138,39 @@ The constitution is read by both Copilot CLI and the GitHub coding agent to ensu
 
 ## Azure Setup
 
+All Azure provisioning and GitHub configuration is handled by `setup-azure.ps1`.
+
 ### Prerequisites
 
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-- [GitHub CLI (gh)](https://cli.github.com/)
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) — authenticated (`az login`)
+- [GitHub CLI (gh)](https://cli.github.com/) — authenticated (`gh auth login`)
+- Azure permissions: Contributor + User Access Administrator (or Owner) on the subscription
 
-### Configure environments
+### What it creates
 
-```bash
-# Login
-az login
-azd auth login
-
-# Provision dev environment
-azd provision --environment dev
-
-# Set up GitHub OIDC for Actions
-az ad app create --display-name "my-app-github"
-# Then configure federated credentials for your repo
+```powershell
+.\setup-azure.ps1 -ProjectName "my-app" -GitHubRepo "myorg/my-app"
 ```
 
-### Required GitHub Secrets/Variables
+| Resource | Details |
+|---|---|
+| Resource Groups | `rg-my-app-shared`, `rg-my-app-dev`, `rg-my-app-staging`, `rg-my-app-prod` |
+| Container Registry | `myappacr` (Basic SKU, in `rg-my-app-shared`) |
+| Entra ID App | `my-app-github-oidc` with OIDC federation for main, PRs, and each environment |
+| Role Assignments | Contributor on RGs, AcrPush + AcrPull on ACR |
+| GitHub Secrets | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` |
+| GitHub Variables | `ACR_NAME`, `PROJECT_NAME` |
+| GitHub Environments | `dev`, `staging`, `prod` |
 
-| Name | Type | Description |
-|---|---|---|
-| `AZURE_CLIENT_ID` | Secret | Service principal / app registration client ID |
-| `AZURE_TENANT_ID` | Secret | Entra ID tenant |
-| `AZURE_SUBSCRIPTION_ID` | Secret | Target subscription |
-| `ACR_NAME` | Variable | Azure Container Registry name (without .azurecr.io) |
-| `PROJECT_NAME` | Variable | Project name (matches stamp) |
+After running this, push to main or open a PR and the CI/CD workflows will work immediately.
+
+### Optional flags
+
+| Flag | Effect |
+|---|---|
+| `-Location "eastus2"` | Change Azure region (default: `uksouth`) |
+| `-SubscriptionId "xxx"` | Target a specific subscription |
+| `-SkipInfraProvision` | Skip resource group + ACR creation (if they already exist) |
 
 ## Dependencies
 
