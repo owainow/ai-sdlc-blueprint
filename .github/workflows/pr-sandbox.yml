@@ -1,0 +1,117 @@
+# PR Sandbox — Deploy a revision to Azure Container Apps for every PR.
+# Surfaces the revision URL as a PR comment so reviewers can test changes live.
+# Cleans up the revision when the PR is closed.
+
+name: PR Sandbox
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  ACR_NAME: ${{ vars.ACR_NAME }}
+  IMAGE_NAME: ${{ vars.PROJECT_NAME }}
+  CONTAINER_APP: ${{ vars.PROJECT_NAME }}-dev
+  RESOURCE_GROUP: rg-${{ vars.PROJECT_NAME }}-dev
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push PR image
+        run: |
+          IMAGE_TAG="pr-${{ github.event.pull_request.number }}"
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+
+      - name: Deploy PR revision
+        id: deploy
+        run: |
+          REVISION_SUFFIX="pr-${{ github.event.pull_request.number }}"
+          IMAGE_TAG="pr-${{ github.event.pull_request.number }}"
+
+          az containerapp revision copy \
+            --name ${{ env.CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG} \
+            --revision-suffix ${REVISION_SUFFIX} \
+            --output none
+
+          FQDN=$(az containerapp revision show \
+            --name ${{ env.CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision "${CONTAINER_APP}--${REVISION_SUFFIX}" \
+            --query "properties.fqdn" -o tsv 2>/dev/null || echo "pending")
+
+          echo "url=https://${FQDN}" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with sandbox URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `### 🚀 PR Sandbox Deployed
+
+            **URL:** ${{ steps.deploy.outputs.url }}
+
+            This preview will be cleaned up when the PR is closed.`;
+
+            // Update or create comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.includes('PR Sandbox Deployed'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  cleanup-preview:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deactivate PR revision
+        run: |
+          REVISION_SUFFIX="pr-${{ github.event.pull_request.number }}"
+          az containerapp revision deactivate \
+            --name ${{ env.CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision "${{ env.CONTAINER_APP }}--${REVISION_SUFFIX}" \
+            --output none 2>/dev/null || true

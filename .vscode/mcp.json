@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "speckit-to-issue": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "speckit_to_issue.mcp"],
+      "disabled": true,
+      "_comment": "Enable once speckit-to-issue MCP server is installed. See: https://github.com/owainow/speckit-to-issue"
+    }
+  }
+  ]
+}
