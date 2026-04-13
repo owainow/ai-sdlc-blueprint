@@ -142,7 +142,7 @@ Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor White
 Write-Host "    1. cd $targetDir" -ForegroundColor DarkGray
 Write-Host "    2. Update .specify/constitution.md with project-specific details" -ForegroundColor DarkGray
-Write-Host "    3. Open in VS Code: code ." -ForegroundColor DarkGray
-Write-Host "    4. Use the @SDLC agent: 'Build me <feature description>'" -ForegroundColor DarkGray
-Write-Host "    5. Create a GitHub repo: gh repo create $GitHubOrg/$ProjectName --push --source ." -ForegroundColor DarkGray
+Write-Host "    3. gh copilot ""/specify <describe what you want to build>""" -ForegroundColor DarkGray
+Write-Host "    4. speckit-to-issue create specs/001-feature/tasks.md --assign-copilot" -ForegroundColor DarkGray
+Write-Host "    5. Push to GitHub: gh repo create $GitHubOrg/$ProjectName --push --source ." -ForegroundColor DarkGray
 Write-Host ""

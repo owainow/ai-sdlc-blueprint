@@ -2,19 +2,32 @@
 
 ## Project Context
 
-This project follows an AI-led SDLC using spec-driven development. All implementation work is guided by specifications in the `.specify/` directory. The project constitution (`.specify/constitution.md`) defines the tech stack, coding standards, and architecture principles.
+This project follows an **AI-led SDLC** using spec-driven development. Every change — whether initiated from Copilot CLI, the GitHub coding agent, or an IDE — must follow this process.
 
-## How to Work in This Repository
+The source of truth for project standards is `.specify/constitution.md`. Read it before doing anything.
 
-1. **Always read the constitution first.** Before making any changes, read `.specify/constitution.md` to understand the project's standards and constraints.
+## The SDLC Flow
 
-2. **Find the relevant spec.** Every task should trace back to a spec in `specs/`. Read the spec's `requirements.md`, `plan.md`, and `tasks.md` before implementing.
+```
+Idea → Spec Kit (specify → plan → tasks) → speckit-to-issue → GitHub Issues → Coding Agent → PR → CI/CD → Azure
+```
 
-3. **Implement one task at a time.** Each task in `tasks.md` is a self-contained unit of work. Complete it fully (including tests) before moving to the next.
+### For the developer (Copilot CLI / local)
 
-4. **Follow the testing strategy.** Write tests alongside or before implementation. Unit test coverage must be at least 80%. Run all tests before committing.
+1. **Specify:** Describe what you want to build. Use Spec Kit to generate requirements, a plan, and tasks.
+2. **Create issues:** Run `speckit-to-issue create specs/NNN-feature/tasks.md --assign-copilot` to push tasks to GitHub.
+3. **Let the coding agent work:** The GitHub coding agent picks up assigned issues, creates branches, and opens PRs.
+4. **Review:** PRs get AI quality review + human review. Leave comments for the coding agent to iterate.
+5. **Merge → Deploy:** CI/CD handles the rest. GitHub Actions builds, pushes to ACR, deploys to Azure Container Apps.
 
-5. **Use conventional commits.** Format: `feat: description`, `fix: description`, `test: description`, etc. Reference the spec task ID in the commit body.
+### For the coding agent (GitHub.com)
+
+When assigned an issue:
+1. Read `.specify/constitution.md` for project standards.
+2. Find the relevant spec in `specs/` — read `requirements.md`, `plan.md`, and `tasks.md`.
+3. Implement exactly one task per issue. Follow the acceptance criteria.
+4. Write tests alongside implementation. Minimum 80% unit test coverage.
+5. Use conventional commits: `feat:`, `fix:`, `test:`, `chore:`, `docs:`. Reference the task ID.
 
 ## Code Standards
 
@@ -33,7 +46,18 @@ This project follows an AI-led SDLC using spec-driven development. All implement
 
 ## PR Guidelines
 
-- Keep PRs focused on a single spec task.
+- One task = one issue = one PR. Keep changes atomic.
 - Include screenshots for UI changes.
 - Ensure CI passes before requesting review.
 - Reference the GitHub issue number in the PR description.
+
+## Key Paths
+
+| Path | Purpose |
+|---|---|
+| `.specify/constitution.md` | Project standards, tech stack, architecture constraints |
+| `specs/` | Specifications, plans, and task breakdowns |
+| `infra/` | Bicep templates for Azure infrastructure |
+| `.github/workflows/` | CI/CD and PR sandbox pipelines |
+| `src/` | Application source code |
+| `tests/` | Test files |
